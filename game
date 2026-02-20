@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .game {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        .click-area {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(145deg, #4299e1, #667eea);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 20px auto;
+            cursor: pointer;
+            transition: all 0.1s;
+            color: white;
+            font-size: 2em;
+        }
+        
+        .click-area:active {
+            transform: scale(0.95);
+        }
+        
+        .score {
+            font-size: 5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .timer {
+            font-size: 2em;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #48bb78;
+            color: white;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game">
+        <h1>🎮 КЛИКЕР СО ЗВУКАМИ</h1>
+        
+        <div class="click-area" onclick="clickHandler()" id="clickArea">
+            <div class="score" id="score">0</div>
+            <div>👆 КЛИК</div>
+        </div>
+        
+        <div class="timer" id="timer">⏰ 10s</div>
+        
+        <button class="btn" onclick="startGame()" id="startBtn">▶ Старт</button>
+        <button class="btn" onclick="testSound()" style="background: #4299e1;">🔊 Тест звука</button>
+    </div>
+
+    <script>
+        let score = 0;
+        let timeLeft = 10;
+        let timerInterval = null;
+        let gameActive = false;
+        
+        // Функция для создания звуков [citation:1]
+        function createSound(freq, type = 'sine', duration = 0.1) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = type; // sine, square, sawtooth, triangle
+                oscillator.frequency.value = freq;
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + duration);
+                
+                // Плавное затухание
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+            } catch(e) {
+                console.log('Аудио не поддерживается');
+            }
+        }
+        
+        // Разные звуки для разных действий
+        function playClickSound() {
+            createSound(800, 'sine', 0.1); // высокий звук
+        }
+        
+        function playGameStartSound() {
+            createSound(600, 'sine', 0.2);
+            setTimeout(() => createSound(800, 'sine', 0.2), 100);
+            setTimeout(() => createSound(1000, 'sine', 0.3), 200);
+        }
+        
+        function playGameEndSound() {
+            createSound(400, 'sawtooth', 0.3);
+            setTimeout(() => createSound(300, 'sawtooth', 0.5), 150);
+        }
+        
+        function playBonusSound() {
+            createSound(1200, 'square', 0.1);
+            setTimeout(() => createSound(1400, 'square', 0.1), 50);
+        }
+        
+        function testSound() {
+            playClickSound();
+        }
+        
+        function clickHandler() {
+            if (!gameActive) {
+                playGameEndSound(); // звук ошибки
+                alert('Нажми СТАРТ чтобы начать!');
+                return;
+            }
+            
+            score++;
+            document.getElementById('score').textContent = score;
+            playClickSound(); // звук при клике
+            
+            // Бонусные звуки
+            if (score % 10 === 0) {
+                playBonusSound(); // каждые 10 кликов
+            }
+        }
+        
+        function startGame() {
+            score = 0;
+            timeLeft = 10;
+            gameActive = true;
+            document.getElementById('score').textContent = '0';
+            document.getElementById('startBtn').disabled = true;
+            playGameStartSound(); // звук старта
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = `⏰ ${timeLeft}s`;
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+        
+        function endGame() {
+            clearInterval(timerInterval);
+            gameActive = false;
+            document.getElementById('startBtn').disabled = false;
+            playGameEndSound(); // звук окончания
+            
+            let message = `Игра окончена! Счёт: ${score}`;
+            if (score >= 30) message += ' 🔥 Супер!';
+            else if (score >= 20) message += ' 👍 Хорошо!';
+            alert(message);
+        }
+    </script>
+</body>
+</html>
